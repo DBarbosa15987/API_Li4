@@ -18,7 +18,7 @@ public class ServerWorker implements Runnable{
         this.s=s;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            this.c = DriverManager.getConnection("jdbc:mysql://localhost/mydb?", "root", "bomdia123");
+            this.c = DriverManager.getConnection("jdbc:mysql://192.168.0.107:3306/mydb", "afonso", "bomdia123");
         } catch (SQLException ex) {
             // handle any errors
             System.out.println("SQLException: " + ex.getMessage());
@@ -41,16 +41,23 @@ public class ServerWorker implements Runnable{
             switch (a) {
 
 
-                case "getLojas":
-                    System.out.println("bomdia amiguinhos");
+                case "getUser":
+                    String usern = in.readUTF();
+                    System.out.println(usern);
                     java.sql.Statement statement = c.createStatement();
-                    ResultSet rs = statement.executeQuery("SELECT * FROM utilizador");
+                    ResultSet rs = statement.executeQuery("SELECT * FROM "+ "utilizador" +" WHERE `username`=\""+usern+"\";");
                     while(rs.next()){
-                        User user = new User("nome");
+                        String username = rs.getString("username");
+                        String nome = rs.getString("nomeCompleto");
+                        String password = rs.getString("password");
+                        String morada = rs.getString("morada");
+                        String email = rs.getString("email");
+
+                        User user = new User(username,nome,email,password,morada);
                         ObjectOutputStream o = new ObjectOutputStream(out);
-                        o.writeObject(user);
-                        o.flush();
+                        o.writeObject(user);o.flush();
                         out.flush();
+
                         
                     }
 
@@ -67,7 +74,7 @@ public class ServerWorker implements Runnable{
 
             out.close();
             in.close();
-            s.close();
+
 
         } catch (Exception e) {
             // TODO Auto-generated catch block
