@@ -3,6 +3,7 @@ import netscape.javascript.JSObject;
 import java.io.*;
 import java.net.Socket;
 import java.sql.*;
+import java.time.LocalTime;
 
 
 public class ServerWorker implements Runnable{
@@ -40,14 +41,14 @@ public class ServerWorker implements Runnable{
             /*
             Queries:
 
-            -> getUser (tudo)
-            -> autenticaUser OK
-            -> criarConta OK
-            -> checkUserName OK
-            -> alterarPassword OK
-            -> getLoja (tudo)
-            -> getLojaPreview
-            -> getCategorias
+                -> getUser (tudo) OK
+                -> autenticaUser OK
+                -> criarConta OK
+                -> checkUserName OK
+                -> alterarPassword OK
+                -> getLoja (tudo) - apenas uma loja OK
+                -> getLojaPreview (id, nome, local x y , horario a f) - todas as lojas OK
+                -> getCategorias
 
              */
 
@@ -194,28 +195,123 @@ public class ServerWorker implements Runnable{
 
                 }
 
+                //(id, nome, local x y , horario a f)
+                case "getLojaPreview" -> {
+
+                    //o cliente calcula o dia
+                    int hoje = in.readInt();
+
+                    //Receber as informações da loja para a preview, incluido o horário de "hoje"
+                    rs = statement.executeQuery("SELECT loja.idloja,loja.nome, loja.coordX,loja.coordY,horario.abertura,horario.fecho FROM loja INNER JOIN horario ON loja.idloja = horario.idLoja WHERE `diaSemana`=" + hoje);
+
+                    //Enviar o número de Lojas
+                    out.writeInt(rs.getFetchSize());
+
+                    while(rs.next()) {
+                        out.writeUTF(rs.getString("idLoja"));
+                        out.writeUTF(rs.getString("nome"));
+                        out.writeFloat(rs.getFloat("coordX"));
+                        out.writeFloat(rs.getFloat("coordY"));
+
+                        //Estes dois são passados como strings e levam parse no cliente
+                        out.writeUTF(rs.getTime("abertura").toString());
+                        out.writeUTF(rs.getTime("fecho").toString());
+                    }
+
+                    out.flush();
+
+                }
+
+                //Isto só acontece quando carregas numa preview de um café, por isso é feito apenas um de cada vez e o id da Loja já é conhecido
                 case "getLoja" -> {
 
+                    String idLoja = in.readUTF();
+
+                    //Receber as informações da Loja
+                    rs = statement.executeQuery("SELECT * FROM loja WHERE loja.idloja = '" + idLoja + "';");
 
 
+                    //Informação da loja
+                    out.writeUTF(rs.getString("idLoja"));
+                    out.writeUTF(rs.getString("nome"));
+                    out.writeUTF(rs.getString("website"));
+                    out.writeUTF(rs.getString("email"));
+                    out.writeUTF(rs.getString("telefone"));
+                    out.writeFloat(rs.getFloat("coordX"));
+                    out.writeFloat(rs.getFloat("coordY"));
 
+                    //Receber as informações dos horários
+                    rs = statement.executeQuery("SELECT * FROM horario WHERE idloja = '" + idLoja + "';");
+
+                    //Devia ser 7, mas depende da implementação, não sei se quando a loja tiver
+                    //fechada a entrada do horario vai ser nula ou simplesmente inexistente
+                    out.writeInt(rs.getFetchSize());
+
+
+                    //Estes dois são passados como strings e levam parse no cliente
+                    while(rs.next()){
+                        out.writeInt(rs.getInt("diaSemana"));
+                        out.writeUTF(rs.getTime("abertura").toString());
+                        out.writeUTF(rs.getTime("fecho").toString());
+                    }
+
+
+                    //Receber as informações dos votos
+                    rs = statement.executeQuery("SELECT * FROM voto WHERE `loja_idloja`='" + idLoja + "';");
+
+                    //Número de votos nesta Loja
+                    out.writeInt(rs.getFetchSize());
+
+                    while(rs.next()){
+                        out.writeUTF(rs.getString("utilizador_username"));
+                        out.writeUTF(rs.getString("categoria_nomeCategoria"));
+                        out.writeBoolean(rs.getBoolean("voto"));
+                    }
+
+                    //Receber as informações dos comentários
+                    rs = statement.executeQuery("SELECT * FROM comentario WHERE `idLoja`='" + idLoja + "';");
+
+                    //Número de comentários nesta Loja
+                    out.writeInt(rs.getFetchSize());
+
+                    while(rs.next()){
+                        out.writeUTF(rs.getString("username"));
+                        out.writeUTF(rs.getString("comentarioText"));
+                        var timestamp = rs.getTimestamp("data");
+                        out.writeLong(timestamp.getTime());
+                    }
+
+
+                    out.flush();
+                }
+
+                case "getCategorias" -> {
+
+                    rs = statement.executeQuery("SELECT * FROM categoria;");
+
+                    //Número de comentários
+                    out.writeInt(rs.getFetchSize());
+
+                    while(rs.next()){
+                        out.writeUTF(rs.getString("nomeCategoria"));
+                    }
+
+                    out.flush();
 
                 }
 
-                default -> {
-                }
             }
 
+            System.out.println("Conexão terminada");
 
             out.close();
             in.close();
-
+            s.close();
 
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        System.out.println("fbhuaigfyduf");
 
         
     }
