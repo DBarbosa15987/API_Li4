@@ -42,90 +42,25 @@ public class ServerWorker implements Runnable{
             ResultSet rs;
             java.sql.Statement statement = c.createStatement();
 
+
             /*
             Queries:
-
-                -> getComentarios OK
-                -> getFavoritos OK
                 -> autenticaUser OK
                 -> criarConta OK
                 -> checkUserName OK
                 -> alterarPassword OK
                 -> getLojaPreview (id, nome, local x y , horario a f) - todas as lojas OK
                 -> getLoja (tudo) - apenas uma loja OK
+                -> getComentarios OK
+                -> getFavoritos OK
                 -> getCategorias OK
                 -> alterVote OK
                 -> comentar OK
                 -> toggleFavorito OK
-
              */
 
+
             switch (query) {
-
-                case "getComentarios" -> {
-
-                    String username = in.readUTF();
-
-                    //Obter a informação dos comentários
-                    rs = statement.executeQuery("SELECT * FROM comentario WHERE `username`='" + username + "';");
-
-                    //Enviar informação os comentários
-                    while(rs.next()){
-
-                        //Sinalizar que um comentário será enviado
-                        out.writeBoolean(true);
-                        out.writeUTF(rs.getString("idLoja"));
-                        out.writeUTF(rs.getString("comentarioText"));
-                        var timestamp = rs.getTimestamp("data");
-                        out.writeLong(timestamp.getTime());
-
-                    }
-
-                    //Sinalizar que já não existem mais comentários para receber
-                    out.writeBoolean(false);
-
-                    out.flush();
-
-
-                }
-
-                case "getFavoritos" -> {
-
-                    String username = in.readUTF();
-                    int hoje = in.readInt();
-
-                    //Obter a informação dos favoritos
-                    rs = statement.executeQuery("SELECT * FROM favorito WHERE `username`='" + username + "';");
-
-                    Set<String> favoritos = new HashSet<>();
-
-                    //Popular o Set com os IDs das lojas favoritas
-                    while(rs.next()) {
-                        favoritos.add(rs.getString("idLoja"));
-                    }
-
-                    //Os favoritos vão ser apresentados da mesma maneira que as lojasPreview!
-                    //Obter as informações da Loja que constam na lista de favoritos do user
-                    for(String idLoja : favoritos) {
-                        rs = statement.executeQuery("SELECT * FROM loja INNER JOIN horario ON loja.idloja = horario.idLoja WHERE `diaSemana`=" + hoje + " AND loja.idloja='" + idLoja + "';");
-
-                        //Sinalizar que uma LojaPreview será enviada
-                        out.writeBoolean(true);
-                        out.writeUTF(rs.getString("idLoja"));
-                        out.writeUTF(rs.getString("nome"));
-                        out.writeFloat(rs.getFloat("coordX"));
-                        out.writeFloat(rs.getFloat("coordY"));
-
-                        //Estes dois são passados como strings e levam parse no cliente
-                        out.writeUTF(rs.getTime("abertura").toString());
-                        out.writeUTF(rs.getTime("fecho").toString());
-                    }
-
-                    //Sinalizar que já não existem mais lojas para receber
-                    out.writeBoolean(false);
-                    out.flush();
-
-                }
 
                 //quando um user é auteticado apenas é enviado uma confirmação e as suas informações
                 case "autenticaUser" -> {
@@ -353,6 +288,71 @@ public class ServerWorker implements Runnable{
                     out.writeBoolean(false);
 
                     out.flush();
+                }
+
+                case "getComentarios" -> {
+
+                    String username = in.readUTF();
+
+                    //Obter a informação dos comentários
+                    rs = statement.executeQuery("SELECT * FROM comentario WHERE `username`='" + username + "';");
+
+                    //Enviar informação os comentários
+                    while(rs.next()){
+
+                        //Sinalizar que um comentário será enviado
+                        out.writeBoolean(true);
+                        out.writeUTF(rs.getString("idLoja"));
+                        out.writeUTF(rs.getString("comentarioText"));
+                        var timestamp = rs.getTimestamp("data");
+                        out.writeLong(timestamp.getTime());
+
+                    }
+
+                    //Sinalizar que já não existem mais comentários para receber
+                    out.writeBoolean(false);
+
+                    out.flush();
+
+
+                }
+
+                case "getFavoritos" -> {
+
+                    String username = in.readUTF();
+                    int hoje = in.readInt();
+
+                    //Obter a informação dos favoritos
+                    rs = statement.executeQuery("SELECT * FROM favorito WHERE `username`='" + username + "';");
+
+                    Set<String> favoritos = new HashSet<>();
+
+                    //Popular o Set com os IDs das lojas favoritas
+                    while(rs.next()) {
+                        favoritos.add(rs.getString("idLoja"));
+                    }
+
+                    //Os favoritos vão ser apresentados da mesma maneira que as lojasPreview!
+                    //Obter as informações da Loja que constam na lista de favoritos do user
+                    for(String idLoja : favoritos) {
+                        rs = statement.executeQuery("SELECT * FROM loja INNER JOIN horario ON loja.idloja = horario.idLoja WHERE `diaSemana`=" + hoje + " AND loja.idloja='" + idLoja + "';");
+
+                        //Sinalizar que uma LojaPreview será enviada
+                        out.writeBoolean(true);
+                        out.writeUTF(rs.getString("idLoja"));
+                        out.writeUTF(rs.getString("nome"));
+                        out.writeFloat(rs.getFloat("coordX"));
+                        out.writeFloat(rs.getFloat("coordY"));
+
+                        //Estes dois são passados como strings e levam parse no cliente
+                        out.writeUTF(rs.getTime("abertura").toString());
+                        out.writeUTF(rs.getTime("fecho").toString());
+                    }
+
+                    //Sinalizar que já não existem mais lojas para receber
+                    out.writeBoolean(false);
+                    out.flush();
+
                 }
 
                 case "getCategorias" -> {
