@@ -142,7 +142,6 @@ public class ServerWorker implements Runnable{
 
                 }
 
-
                 case "criarConta" -> {
 
                     String usernameInput = in.readUTF();
@@ -166,7 +165,7 @@ public class ServerWorker implements Runnable{
 
                     //Credenciais confirmadas, inserir User na db
                     if(userNameDisponivel&&emailDisponivel) {
-                        rs = statement.executeQuery("INSERT INTO utilizador VALUES (" + usernameInput +"," + emailInput + "," + passwordInput + "," + nomeCompletoInput + "," + moradaInput + ")");
+                        rs = statement.executeQuery("INSERT INTO utilizador VALUES ('" + usernameInput +"','" + emailInput + "','" + passwordInput + "','" + nomeCompletoInput + "','" + moradaInput + "');");
                     }
 
                     out.flush();
@@ -283,18 +282,23 @@ public class ServerWorker implements Runnable{
                     //Receber as informações dos votos
                     rs = statement.executeQuery("SELECT * FROM voto WHERE `loja_idloja`='" + idLoja + "';");
 
-
+                    int rating=0;
                     while(rs.next()){
 
                         //Sinalizar que será enviado um voto
                         out.writeBoolean(true);
-                        out.writeUTF(rs.getString("utilizador_username"));
                         out.writeUTF(rs.getString("categoria_nomeCategoria"));
-                        out.writeBoolean(rs.getBoolean("voto"));
+                        boolean voto = rs.getBoolean("voto");
+                        if(voto) rating++;
+                        else rating --;
                     }
 
                     //Sinalizar que já não existem votos para receber
                     out.writeBoolean(false);
+
+                    //Rating total
+                    out.writeInt(rating);
+
 
                     //Receber as informações dos comentários
                     rs = statement.executeQuery("SELECT * FROM comentario WHERE `idLoja`='" + idLoja + "';");
@@ -334,9 +338,64 @@ public class ServerWorker implements Runnable{
 
                 }
 
+                case "alterVote" -> {
+
+                    /*
+                    'alter' pode ser:
+                        upvote (1)
+                        downvote (-1)
+                        remove (0)
+                     */
+
+                    int alter = in.readInt();
+                    String usernameInput = in.readUTF();
+                    String idLojaInput = in.readUTF();
+                    String categoriaInput = in.readUTF();
+
+                    switch (alter){
+
+                        //upvote
+                        case 1 ->
+                            rs = statement.executeQuery("INSERT INTO voto VALUES ('" + usernameInput + "','" + categoriaInput + "','" + idLojaInput + "','" + 1 + "');");
+
+                        //remove
+                        case 0 ->
+                            rs = statement.executeQuery("DELETE FROM voto WHERE `utilizador_username`='" + usernameInput + "' AND `loja_idloja`='" + idLojaInput + "';");
+
+                        //downvote
+                        case -1 ->
+                            rs = statement.executeQuery("INSERT INTO voto VALUES ('" + usernameInput + "','" + categoriaInput + "','" + idLojaInput + "','" + 0 + "');");
+
+                    }
+
+                }
+
+                case "comentar" -> {
+
+                    String usernameInput = in.readUTF();
+                    String idLojaInput = in.readUTF();
+                    String comentarioInput = in.readUTF();
+                    //??Long??
+                    long data = in.readLong();
+                    Timestamp timestamp = new Timestamp(data);
+
+                    rs = statement.executeQuery("INSERT INTO comentario VALUES ('" + usernameInput + "','" + idLojaInput + "','" + comentarioInput + "','" + timestamp + "');");
+
+                }
+
+                case "toggleFavorito" -> {
+
+
+                    String usernameInput = in.readUTF();
+                    String idLojaInput = in.readUTF();
+
+                    //rs = statement.executeQuery("INSERT");
+
+                }
+
             }
 
-            System.out.println("Conexão terminada");
+            System.out.println("Conexão terminada na porta " + s.getPort());
 
             out.close();
             in.close();
