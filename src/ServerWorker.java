@@ -16,7 +16,7 @@ public class ServerWorker implements Runnable{
         this.s=s;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            this.c = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "bomdia123");
+            this.c = DriverManager.getConnection("jdbc:mysql://192.168.0.107:3306/mydb", "afonso", "bomdia123");
         } catch (SQLException ex) {
             // handle any errors
             System.out.println("SQLException: " + ex.getMessage());
@@ -196,17 +196,16 @@ public class ServerWorker implements Runnable{
                 }
 
                 //(id, nome, local x y , horario a f)
-                case "getLojaPreview" -> {
+                case "getLojasPreview" -> {
 
                     //o cliente calcula o dia
                     int hoje = in.readInt();
 
                     //Receber as informações da loja para a preview, incluido o horário de "hoje"
-                    rs = statement.executeQuery("SELECT loja.idloja,loja.nome, loja.coordX,loja.coordY,horario.abertura,horario.fecho FROM loja INNER JOIN horario ON loja.idloja = horario.idLoja WHERE `diaSemana`=" + hoje);
+                    rs = statement.executeQuery("SELECT loja.idloja,loja.nome, loja.coordX,loja.coordY,horario.abertura,horario.fecho FROM loja INNER JOIN horario ON loja.idloja = horario.idLoja WHERE `diaSemana`="+hoje+";");
 
                     //Enviar o número de Lojas
-                    out.writeInt(rs.getFetchSize());
-
+                    System.out.println("a");
                     while(rs.next()) {
                         out.writeUTF(rs.getString("idLoja"));
                         out.writeUTF(rs.getString("nome"));
@@ -217,7 +216,7 @@ public class ServerWorker implements Runnable{
                         out.writeUTF(rs.getTime("abertura").toString());
                         out.writeUTF(rs.getTime("fecho").toString());
                     }
-
+                    out.writeUTF("#####");
                     out.flush();
 
                 }
