@@ -295,17 +295,25 @@ public class ServerWorker implements Runnable{
                 case "getLojasPreview" -> {
 
                     //o cliente calcula o dia
+                    String username = in.readUTF();
                     int hoje = in.readInt();
 
                     //Receber as informações da loja para a preview, incluido o horário de "hoje"
-                    rs = statement.executeQuery("SELECT loja.idloja,loja.nome, loja.coordX,loja.coordY,horario.abertura,horario.fecho FROM loja INNER JOIN horario ON loja.idloja = horario.idLoja WHERE `diaSemana`="+hoje+";");
+                    rs = statement.executeQuery("SELECT loja.idloja,loja.nome, loja.coordX,loja.coordY,horario.abertura,horario.fecho FROM loja " +
+                                                    "LEFT JOIN horario ON loja.idloja = horario.idLoja " +
+                                                    "WHERE `diaSemana`=" + hoje + ";");
 
-                    //Enviar o número de Lojas
+                    //Outra query
+                    ResultSet rs2;
+                    java.sql.Statement statement2 = c.createStatement();
+
+                    //Enviar a informação das lojas
                     while(rs.next()) {
 
                         //Sinalizar que uma LojaPreview será enviada
                         out.writeBoolean(true);
-                        out.writeUTF(rs.getString("idLoja"));
+                        String idLoja = rs.getString("idLoja");
+                        out.writeUTF(idLoja);
                         out.writeUTF(rs.getString("nome"));
                         out.writeFloat(rs.getFloat("coordX"));
                         out.writeFloat(rs.getFloat("coordY"));
@@ -313,6 +321,13 @@ public class ServerWorker implements Runnable{
                         //Estes dois são passados como strings e levam parse no cliente
                         out.writeUTF(rs.getTime("abertura").toString());
                         out.writeUTF(rs.getTime("fecho").toString());
+
+                        rs2 = statement2.executeQuery("SELECT * FROM favorito WHERE `idLoja`='" + idLoja + "' AND `username`='" + username + "';");
+
+                        //Se existe next, quer dizer que o request não veio vazio e esta loja é um favorito deste user
+                        boolean favorito = rs2.next();
+                        out.writeBoolean(favorito);
+
                     }
 
                     //Sinalizar que já não existem mais lojas para receber
@@ -324,6 +339,7 @@ public class ServerWorker implements Runnable{
                 //Isto só acontece quando carregas numa preview de um café, por isso é feito apenas um de cada vez e o id da Loja já é conhecido
                 case "getLoja" -> {
 
+                    String username = in.readUTF();
                     String idLoja = in.readUTF();
 
                     //Receber as informações da Loja
@@ -337,6 +353,13 @@ public class ServerWorker implements Runnable{
                     out.writeUTF(rs.getString("telefone"));
                     out.writeFloat(rs.getFloat("coordX"));
                     out.writeFloat(rs.getFloat("coordY"));
+
+                    //Check se é favorito
+                    rs = statement.executeQuery("SELECT * FROM favorito WHERE `idLoja`='" + idLoja + "' AND `username`='" + username + "';");
+
+                    //Se existe next, quer dizer que o request não veio vazio e esta loja é um favorito deste user
+                    boolean favorito = rs.next();
+                    out.writeBoolean(favorito);
 
                     //Receber as informações dos horários
                     rs = statement.executeQuery("SELECT * FROM horario WHERE idloja = '" + idLoja + "';");
