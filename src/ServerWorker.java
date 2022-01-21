@@ -4,6 +4,8 @@ import java.io.*;
 import java.net.Socket;
 import java.sql.*;
 import java.time.LocalTime;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class ServerWorker implements Runnable{
@@ -53,6 +55,7 @@ public class ServerWorker implements Runnable{
              */
 
             switch (query) {
+
                 //isto vai acontecer apenas quando o user visita o seu perfil
                 case "getUser" -> {
 
@@ -254,7 +257,6 @@ public class ServerWorker implements Runnable{
 
 
                     //Informação da loja
-                    out.writeUTF(rs.getString("idLoja"));
                     out.writeUTF(rs.getString("nome"));
                     out.writeUTF(rs.getString("website"));
                     out.writeUTF(rs.getString("email"));
@@ -282,22 +284,46 @@ public class ServerWorker implements Runnable{
                     //Receber as informações dos votos
                     rs = statement.executeQuery("SELECT * FROM voto WHERE `loja_idloja`='" + idLoja + "';");
 
-                    int rating=0;
+                    //Map<categoria,n_votos>
+                    Map<String,Integer> votos = new HashMap<>();
+
+                    //Popular o mapa para organizar os votos e as respetivas categorias
                     while(rs.next()){
+
+                        String categoria = rs.getString("categoria_nomeCategoria");
+                        boolean voto = rs.getBoolean("voto");
+
+                        if(votos.containsKey(categoria)){
+
+                            var v = votos.get(categoria);
+
+                            if(voto) {
+                                v++;
+                            }
+                            else{
+                                v--;
+                            }
+
+                        }
+                        else{
+                            int v = voto ? 1 : -1;
+                            votos.put(categoria,v);
+                        }
+
+                    }
+
+                    //O mapa é agora iterado para enviar a informação ao cliente
+                    for(var set : votos.entrySet()){
 
                         //Sinalizar que será enviado um voto
                         out.writeBoolean(true);
-                        out.writeUTF(rs.getString("categoria_nomeCategoria"));
-                        boolean voto = rs.getBoolean("voto");
-                        if(voto) rating++;
-                        else rating --;
+                        out.writeUTF(set.getKey());
+                        out.writeInt(set.getValue());
+
                     }
 
                     //Sinalizar que já não existem votos para receber
                     out.writeBoolean(false);
-
-                    //Rating total
-                    out.writeInt(rating);
 
 
                     //Receber as informações dos comentários
@@ -398,7 +424,6 @@ public class ServerWorker implements Runnable{
                     }
                 }
 
-                
 
             }
 
