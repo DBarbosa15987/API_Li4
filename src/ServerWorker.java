@@ -45,7 +45,6 @@ public class ServerWorker implements Runnable{
             /*
             Queries:
 
-                -> getUser OK
                 -> getComentarios OK
                 -> getFavoritos OK
                 -> autenticaUser OK
@@ -62,25 +61,6 @@ public class ServerWorker implements Runnable{
              */
 
             switch (query) {
-
-                //isto vai acontecer apenas quando o user visita o seu perfil
-                case "getUser" -> {
-
-                    //Como esta query só vai ser usada quando o user já estiver autenticado, o username já estará em cache
-                    String username = in.readUTF();
-                    System.out.println(username);
-
-                    //Obter a informação do user
-                    rs = statement.executeQuery("SELECT `email`,`nomeCompleto`,`morada` FROM utilizador WHERE `username`='" + username + "';");
-
-                    //Enviar a informação do user
-                    out.writeUTF(rs.getString("email"));
-                    out.writeUTF(rs.getString("nomeCompleto"));
-                    out.writeUTF(rs.getString("morada"));
-                    out.writeUTF(rs.getString("pfpURL"));
-
-                    out.flush();
-                }
 
                 case "getComentarios" -> {
 
@@ -147,7 +127,7 @@ public class ServerWorker implements Runnable{
 
                 }
 
-                //quando um user é auteticado apenas é enviado uma confirmação e o seu username
+                //quando um user é auteticado apenas é enviado uma confirmação e as suas informações
                 case "autenticaUser" -> {
 
                     //Receber username e pass que o user introduz
@@ -162,10 +142,15 @@ public class ServerWorker implements Runnable{
                     out.writeBoolean(autenticado);
                     out.flush();
 
-                    //Se o User for autenticado, enviar agora o username para manter em cache
+                    //Se está autenticado, envias todas as infos do user
                     if(autenticado){
-                        out.writeUTF(rs.getString("username"));
-                        out.flush();
+
+                        rs = statement.executeQuery("SELECT `username` FROM utilizador WHERE `username`='" + usernameInput + "';");
+
+                        out.writeUTF(rs.getString("email"));
+                        out.writeUTF(rs.getString("nomeCompleto"));
+                        out.writeUTF(rs.getString("morada"));
+                        out.writeUTF(rs.getString("pfpURL"));
                     }
 
                 }
