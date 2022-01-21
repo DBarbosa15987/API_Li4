@@ -45,18 +45,22 @@ public class ServerWorker implements Runnable{
 
             /*
             Queries:
+
+                --------USER--------
                 -> autenticaUser OK
                 -> criarConta OK
                 -> checkUserName OK
                 -> alterarPassword OK
-                -> getLojaPreview (id, nome, local x y , horario a f) - todas as lojas OK
-                -> getLoja (tudo) - apenas uma loja OK
                 -> getComentarios OK
                 -> getFavoritos OK
-                -> getCategorias OK
                 -> alterVote OK
                 -> comentar OK
                 -> toggleFavorito OK
+
+                --------LOJA--------
+                -> getLoja (tudo) - apenas uma loja OK
+                -> getLojaPreview (id, nome, local x y , horario a f) - todas as lojas OK
+                -> getCategorias OK
              */
 
 
@@ -160,6 +164,131 @@ public class ServerWorker implements Runnable{
                     out.writeBoolean(passCerta);
                     out.flush();
 
+                }
+
+                case "getFavoritos" -> {
+
+                    String username = in.readUTF();
+                    int hoje = in.readInt();
+
+                    //Obter a informação dos favoritos
+                    rs = statement.executeQuery("SELECT * FROM favorito WHERE `username`='" + username + "';");
+
+                    Set<String> favoritos = new HashSet<>();
+
+                    //Popular o Set com os IDs das lojas favoritas
+                    while(rs.next()) {
+                        favoritos.add(rs.getString("idLoja"));
+                    }
+
+                    //Os favoritos vão ser apresentados da mesma maneira que as lojasPreview!
+                    //Obter as informações da Loja que constam na lista de favoritos do user
+                    for(String idLoja : favoritos) {
+                        rs = statement.executeQuery("SELECT * FROM loja INNER JOIN horario ON loja.idloja = horario.idLoja WHERE `diaSemana`=" + hoje + " AND loja.idloja='" + idLoja + "';");
+
+                        //Sinalizar que uma LojaPreview será enviada
+                        out.writeBoolean(true);
+                        out.writeUTF(rs.getString("idLoja"));
+                        out.writeUTF(rs.getString("nome"));
+                        out.writeFloat(rs.getFloat("coordX"));
+                        out.writeFloat(rs.getFloat("coordY"));
+
+                        //Estes dois são passados como strings e levam parse no cliente
+                        out.writeUTF(rs.getTime("abertura").toString());
+                        out.writeUTF(rs.getTime("fecho").toString());
+                    }
+
+                    //Sinalizar que já não existem mais lojas para receber
+                    out.writeBoolean(false);
+                    out.flush();
+
+                }
+
+                case "getComentarios" -> {
+
+                    String username = in.readUTF();
+
+                    //Obter a informação dos comentários
+                    rs = statement.executeQuery("SELECT * FROM comentario WHERE `username`='" + username + "';");
+
+                    //Enviar informação os comentários
+                    while(rs.next()){
+
+                        //Sinalizar que um comentário será enviado
+                        out.writeBoolean(true);
+                        out.writeUTF(rs.getString("idLoja"));
+                        out.writeUTF(rs.getString("comentarioText"));
+                        var timestamp = rs.getTimestamp("data");
+                        out.writeLong(timestamp.getTime());
+
+                    }
+
+                    //Sinalizar que já não existem mais comentários para receber
+                    out.writeBoolean(false);
+
+                    out.flush();
+
+
+                }
+
+                case "alterVote" -> {
+
+                    /*
+                    'alter' pode ser:
+                        upvote (1)
+                        downvote (-1)
+                        remove (0)
+                     */
+
+                    int alter = in.readInt();
+                    String usernameInput = in.readUTF();
+                    String idLojaInput = in.readUTF();
+                    String categoriaInput = in.readUTF();
+
+                    switch (alter){
+
+                        //upvote
+                        case 1 ->
+                            rs = statement.executeQuery("INSERT INTO voto VALUES ('" + usernameInput + "','" + categoriaInput + "','" + idLojaInput + "','" + 1 + "');");
+
+                        //remove
+                        case 0 ->
+                            rs = statement.executeQuery("DELETE FROM voto WHERE `utilizador_username`='" + usernameInput + "' AND `loja_idloja`='" + idLojaInput + "';");
+
+                        //downvote
+                        case -1 ->
+                            rs = statement.executeQuery("INSERT INTO voto VALUES ('" + usernameInput + "','" + categoriaInput + "','" + idLojaInput + "','" + 0 + "');");
+
+                    }
+
+                }
+
+                case "comentar" -> {
+
+                    String usernameInput = in.readUTF();
+                    String idLojaInput = in.readUTF();
+                    String comentarioInput = in.readUTF();
+                    long data = in.readLong();
+                    Timestamp timestamp = new Timestamp(data);
+
+                    rs = statement.executeQuery("INSERT INTO comentario VALUES ('" + usernameInput + "','" + idLojaInput + "','" + comentarioInput + "','" + timestamp + "');");
+
+                }
+
+                case "toggleFavorito" -> {
+
+                    boolean addOrRemove = in.readBoolean();
+                    String usernameInput = in.readUTF();
+                    String idLojaInput = in.readUTF();
+
+                    if(addOrRemove) {
+                        //add
+                        rs = statement.executeQuery("INSERT INTO favorito VALUES ('" + usernameInput + "','" + idLojaInput + "');");
+                    }
+                    else{
+                        //remove
+                        rs = statement.executeQuery("DELETE FROM favorito WHERE `username`='" + usernameInput + "' AND `idLoja`='" + idLojaInput + "';");
+                    }
                 }
 
                 //(id, nome, local x y , horario a f)
@@ -290,71 +419,6 @@ public class ServerWorker implements Runnable{
                     out.flush();
                 }
 
-                case "getComentarios" -> {
-
-                    String username = in.readUTF();
-
-                    //Obter a informação dos comentários
-                    rs = statement.executeQuery("SELECT * FROM comentario WHERE `username`='" + username + "';");
-
-                    //Enviar informação os comentários
-                    while(rs.next()){
-
-                        //Sinalizar que um comentário será enviado
-                        out.writeBoolean(true);
-                        out.writeUTF(rs.getString("idLoja"));
-                        out.writeUTF(rs.getString("comentarioText"));
-                        var timestamp = rs.getTimestamp("data");
-                        out.writeLong(timestamp.getTime());
-
-                    }
-
-                    //Sinalizar que já não existem mais comentários para receber
-                    out.writeBoolean(false);
-
-                    out.flush();
-
-
-                }
-
-                case "getFavoritos" -> {
-
-                    String username = in.readUTF();
-                    int hoje = in.readInt();
-
-                    //Obter a informação dos favoritos
-                    rs = statement.executeQuery("SELECT * FROM favorito WHERE `username`='" + username + "';");
-
-                    Set<String> favoritos = new HashSet<>();
-
-                    //Popular o Set com os IDs das lojas favoritas
-                    while(rs.next()) {
-                        favoritos.add(rs.getString("idLoja"));
-                    }
-
-                    //Os favoritos vão ser apresentados da mesma maneira que as lojasPreview!
-                    //Obter as informações da Loja que constam na lista de favoritos do user
-                    for(String idLoja : favoritos) {
-                        rs = statement.executeQuery("SELECT * FROM loja INNER JOIN horario ON loja.idloja = horario.idLoja WHERE `diaSemana`=" + hoje + " AND loja.idloja='" + idLoja + "';");
-
-                        //Sinalizar que uma LojaPreview será enviada
-                        out.writeBoolean(true);
-                        out.writeUTF(rs.getString("idLoja"));
-                        out.writeUTF(rs.getString("nome"));
-                        out.writeFloat(rs.getFloat("coordX"));
-                        out.writeFloat(rs.getFloat("coordY"));
-
-                        //Estes dois são passados como strings e levam parse no cliente
-                        out.writeUTF(rs.getTime("abertura").toString());
-                        out.writeUTF(rs.getTime("fecho").toString());
-                    }
-
-                    //Sinalizar que já não existem mais lojas para receber
-                    out.writeBoolean(false);
-                    out.flush();
-
-                }
-
                 case "getCategorias" -> {
 
                     rs = statement.executeQuery("SELECT * FROM categoria;");
@@ -372,66 +436,6 @@ public class ServerWorker implements Runnable{
 
                     out.flush();
 
-                }
-
-                case "alterVote" -> {
-
-                    /*
-                    'alter' pode ser:
-                        upvote (1)
-                        downvote (-1)
-                        remove (0)
-                     */
-
-                    int alter = in.readInt();
-                    String usernameInput = in.readUTF();
-                    String idLojaInput = in.readUTF();
-                    String categoriaInput = in.readUTF();
-
-                    switch (alter){
-
-                        //upvote
-                        case 1 ->
-                            rs = statement.executeQuery("INSERT INTO voto VALUES ('" + usernameInput + "','" + categoriaInput + "','" + idLojaInput + "','" + 1 + "');");
-
-                        //remove
-                        case 0 ->
-                            rs = statement.executeQuery("DELETE FROM voto WHERE `utilizador_username`='" + usernameInput + "' AND `loja_idloja`='" + idLojaInput + "';");
-
-                        //downvote
-                        case -1 ->
-                            rs = statement.executeQuery("INSERT INTO voto VALUES ('" + usernameInput + "','" + categoriaInput + "','" + idLojaInput + "','" + 0 + "');");
-
-                    }
-
-                }
-
-                case "comentar" -> {
-
-                    String usernameInput = in.readUTF();
-                    String idLojaInput = in.readUTF();
-                    String comentarioInput = in.readUTF();
-                    long data = in.readLong();
-                    Timestamp timestamp = new Timestamp(data);
-
-                    rs = statement.executeQuery("INSERT INTO comentario VALUES ('" + usernameInput + "','" + idLojaInput + "','" + comentarioInput + "','" + timestamp + "');");
-
-                }
-
-                case "toggleFavorito" -> {
-
-                    boolean addOrRemove = in.readBoolean();
-                    String usernameInput = in.readUTF();
-                    String idLojaInput = in.readUTF();
-
-                    if(addOrRemove) {
-                        //add
-                        rs = statement.executeQuery("INSERT INTO favorito VALUES ('" + usernameInput + "','" + idLojaInput + "');");
-                    }
-                    else{
-                        //remove
-                        rs = statement.executeQuery("DELETE FROM favorito WHERE `username`='" + usernameInput + "' AND `idLoja`='" + idLojaInput + "';");
-                    }
                 }
 
 
