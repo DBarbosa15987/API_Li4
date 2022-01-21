@@ -375,7 +375,6 @@ public class ServerWorker implements Runnable{
                     String usernameInput = in.readUTF();
                     String idLojaInput = in.readUTF();
                     String comentarioInput = in.readUTF();
-                    //??Long??
                     long data = in.readLong();
                     Timestamp timestamp = new Timestamp(data);
 
@@ -385,13 +384,21 @@ public class ServerWorker implements Runnable{
 
                 case "toggleFavorito" -> {
 
-
+                    boolean addOrRemove = in.readBoolean();
                     String usernameInput = in.readUTF();
                     String idLojaInput = in.readUTF();
 
-                    //rs = statement.executeQuery("INSERT");
-
+                    if(addOrRemove) {
+                        //add
+                        rs = statement.executeQuery("INSERT INTO favorito VALUES ('" + usernameInput + "','" + idLojaInput + "');");
+                    }
+                    else{
+                        //remove
+                        rs = statement.executeQuery("DELETE FROM favorito WHERE `username`='" + usernameInput + "' AND `idLoja`='" + idLojaInput + "';");
+                    }
                 }
+
+                
 
             }
 
