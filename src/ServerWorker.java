@@ -48,7 +48,7 @@ public class ServerWorker implements Runnable{
                 -> alterarPassword OK
                 -> getLoja (tudo) - apenas uma loja OK
                 -> getLojaPreview (id, nome, local x y , horario a f) - todas as lojas OK
-                -> getCategorias
+                -> getCategorias OK
 
              */
 
@@ -72,34 +72,49 @@ public class ServerWorker implements Runnable{
                     rs = statement.executeQuery("SELECT * FROM favorito WHERE `username`='" + username + "';");
 
                     //Enviar a informação dos favortios
-                    out.writeInt(rs.getFetchSize());
                     while(rs.next()) {
+
+                        //Sinalizar que um favorito será enviado
+                        out.writeBoolean(true);
                         out.writeUTF(rs.getString("idLoja"));
                     }
+
+                    //Sinalizar que já não existem mais favoritos para receber
+                    out.writeBoolean(false);
 
                     //Obter a informação dos votos
                     rs = statement.executeQuery("SELECT * FROM voto WHERE `utilizador_username`='" + username + "';");
 
                     //Enviar a informação dos votos
-                    out.writeInt(rs.getFetchSize());
                     while(rs.next()){
+
+                        //Sinalizar que um voto será enviado
+                        out.writeBoolean(true);
                         out.writeUTF(rs.getString("categoria_nomeCategoria"));
                         out.writeUTF(rs.getString("loja_idloja"));
                         out.writeBoolean(rs.getBoolean("voto"));
                     }
 
+                    //Sinalizar que já não existem mais votos para receber
+                    out.writeBoolean(false);
+
                     //Obter a informação dos comentários
                     rs = statement.executeQuery("SELECT * FROM comentario WHERE `username`='" + username + "';");
 
                     //Enviar informação os comentários
-                    out.writeInt(rs.getFetchSize());
                     while(rs.next()){
+
+                        //Sinalizar que um comentário será enviado
+                        out.writeBoolean(true);
                         out.writeUTF(rs.getString("idLoja"));
                         out.writeUTF(rs.getString("comentarioText"));
                         var timestamp = rs.getTimestamp("data");
                         out.writeLong(timestamp.getTime());
 
                     }
+
+                    //Sinalizar que já não existem mais comentários para receber
+                    out.writeBoolean(false);
 
                     out.flush();
                 }
@@ -114,11 +129,12 @@ public class ServerWorker implements Runnable{
 
                     rs = statement.executeQuery("SELECT `username` FROM utilizador WHERE `username`='" + usernameInput +"' AND `password`='" + passwordInput + "';");
 
-                    boolean autenticado = rs.getFetchSize()!=0;
+                    //Quando o valor não existe da db, o ResultSet retorna 0 rows, e por isso rs.next() seria falso
+                    boolean autenticado = rs.next();
                     out.writeBoolean(autenticado);
                     out.flush();
 
-                    //User autenticado, enviar agora o username
+                    //Se o User for autenticado, enviar agora o username para manter em cache
                     if(autenticado){
                         out.writeUTF(rs.getString("username"));
                         out.flush();
@@ -135,23 +151,25 @@ public class ServerWorker implements Runnable{
                     String moradaInput = in.readUTF();
                     String emailInput = in.readUTF();
 
-
+                    //Quando o valor não existe da db, o ResultSet retorna 0 rows, e por isso rs.next() seria falso
+                    //Username e email são únicos, por isso se não existirem na base de dados, estão disponíveis
 
                     //Verificar se o userName está disponível
                     rs = statement.executeQuery("SELECT * FROM utilizador WHERE `username`='" + usernameInput + "';");
-                    boolean userNameDisponivel = rs.getFetchSize()==0;
+                    boolean userNameDisponivel = !rs.next();
                     out.writeBoolean(userNameDisponivel);
 
                     //Verificar se o email está disponível
                     rs = statement.executeQuery("SELECT * FROM utilizador WHERE `email`='" + emailInput + "';");
-                    boolean emailDisponivel = rs.getFetchSize()==0;
+                    boolean emailDisponivel = !rs.next();
                     out.writeBoolean(emailDisponivel);
-                    out.flush();
 
                     //Credenciais confirmadas, inserir User na db
                     if(userNameDisponivel&&emailDisponivel) {
                         rs = statement.executeQuery("INSERT INTO utilizador VALUES (" + usernameInput +"," + emailInput + "," + passwordInput + "," + nomeCompletoInput + "," + moradaInput + ")");
                     }
+
+                    out.flush();
 
                 }
 
@@ -162,8 +180,9 @@ public class ServerWorker implements Runnable{
 
                     rs = statement.executeQuery("SELECT * FROM utilizador WHERE `username`='" + usernameInput + "';");
 
-                    //username é único, por isso se não existir na base de dados, está disponível
-                    boolean userNameDisponivel = rs.getFetchSize()==0;
+                    //Quando o valor não existe da db, o ResultSet retorna 0 rows, e por isso rs.next() seria falso
+                    //Username é único, por isso se não existir na base de dados, está disponível
+                    boolean userNameDisponivel = !rs.next();
                     out.writeBoolean(userNameDisponivel);
                     out.flush();
 
@@ -189,6 +208,7 @@ public class ServerWorker implements Runnable{
                         rs = statement.executeQuery("UPDATE utilizador SET `password`='" + newpasswordInput + "' WHERE `username`='" + username + "';");
                     }
 
+                    //Dizer o que correu bem e o que não, se os dois são verdadeiros sabemos que a password foi atualizada
                     out.writeBoolean(passIgual);
                     out.writeBoolean(passCerta);
                     out.flush();
@@ -205,8 +225,10 @@ public class ServerWorker implements Runnable{
                     rs = statement.executeQuery("SELECT loja.idloja,loja.nome, loja.coordX,loja.coordY,horario.abertura,horario.fecho FROM loja INNER JOIN horario ON loja.idloja = horario.idLoja WHERE `diaSemana`="+hoje+";");
 
                     //Enviar o número de Lojas
-                    System.out.println("a");
                     while(rs.next()) {
+
+                        //Sinalizar que uma LojaPreview será enviada
+                        out.writeBoolean(true);
                         out.writeUTF(rs.getString("idLoja"));
                         out.writeUTF(rs.getString("nome"));
                         out.writeFloat(rs.getFloat("coordX"));
@@ -216,7 +238,9 @@ public class ServerWorker implements Runnable{
                         out.writeUTF(rs.getTime("abertura").toString());
                         out.writeUTF(rs.getTime("fecho").toString());
                     }
-                    out.writeUTF("#####");
+
+                    //Sinalizar que já não existem mais lojas para receber
+                    out.writeBoolean(false);
                     out.flush();
 
                 }
@@ -242,44 +266,51 @@ public class ServerWorker implements Runnable{
                     //Receber as informações dos horários
                     rs = statement.executeQuery("SELECT * FROM horario WHERE idloja = '" + idLoja + "';");
 
-                    //Devia ser 7, mas depende da implementação, não sei se quando a loja tiver
-                    //fechada a entrada do horario vai ser nula ou simplesmente inexistente
-                    out.writeInt(rs.getFetchSize());
 
-
-                    //Estes dois são passados como strings e levam parse no cliente
+                    //Estes dois 'times' são passados como strings e levam parse no cliente
                     while(rs.next()){
+
+                        //Sinalizar que será enviado um horario
+                        out.writeBoolean(true);
                         out.writeInt(rs.getInt("diaSemana"));
                         out.writeUTF(rs.getTime("abertura").toString());
                         out.writeUTF(rs.getTime("fecho").toString());
                     }
 
+                    //Sinalizar que já não existem horarios para receber
+                    out.writeBoolean(false);
 
                     //Receber as informações dos votos
                     rs = statement.executeQuery("SELECT * FROM voto WHERE `loja_idloja`='" + idLoja + "';");
 
-                    //Número de votos nesta Loja
-                    out.writeInt(rs.getFetchSize());
 
                     while(rs.next()){
+
+                        //Sinalizar que será enviado um voto
+                        out.writeBoolean(true);
                         out.writeUTF(rs.getString("utilizador_username"));
                         out.writeUTF(rs.getString("categoria_nomeCategoria"));
                         out.writeBoolean(rs.getBoolean("voto"));
                     }
 
+                    //Sinalizar que já não existem votos para receber
+                    out.writeBoolean(false);
+
                     //Receber as informações dos comentários
                     rs = statement.executeQuery("SELECT * FROM comentario WHERE `idLoja`='" + idLoja + "';");
 
-                    //Número de comentários nesta Loja
-                    out.writeInt(rs.getFetchSize());
 
                     while(rs.next()){
+                        //Sinalizar que será enviado um comentario
+                        out.writeBoolean(true);
                         out.writeUTF(rs.getString("username"));
                         out.writeUTF(rs.getString("comentarioText"));
                         var timestamp = rs.getTimestamp("data");
                         out.writeLong(timestamp.getTime());
                     }
 
+                    //Sinalizar que já não existem comentarios para receber
+                    out.writeBoolean(false);
 
                     out.flush();
                 }
@@ -288,12 +319,16 @@ public class ServerWorker implements Runnable{
 
                     rs = statement.executeQuery("SELECT * FROM categoria;");
 
-                    //Número de comentários
-                    out.writeInt(rs.getFetchSize());
 
                     while(rs.next()){
+
+                        //Sinalizar que uma categoria será enviada
+                        out.writeBoolean(true);
                         out.writeUTF(rs.getString("nomeCategoria"));
                     }
+
+                    //Sinalizar que já não existem mais categorias para receber
+                    out.writeBoolean(false);
 
                     out.flush();
 
