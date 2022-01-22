@@ -4,10 +4,7 @@ import java.io.*;
 import java.net.Socket;
 import java.sql.*;
 import java.time.LocalTime;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 
 public class ServerWorker implements Runnable{
@@ -66,7 +63,6 @@ public class ServerWorker implements Runnable{
 
             switch (query) {
 
-                //quando um user é auteticado apenas é enviado uma confirmação e as suas informações
                 case "autenticaUser" -> {
 
                     //Receber username e pass que o user introduz
@@ -292,7 +288,6 @@ public class ServerWorker implements Runnable{
                     }
                 }
 
-                //(id, nome, local x y , horario a f)
                 case "getLojasPreview" -> {
 
                     //o cliente calcula o dia
@@ -329,6 +324,53 @@ public class ServerWorker implements Runnable{
                         boolean favorito = rs2.next();
                         out.writeBoolean(favorito);
 
+                        //Obter os votos desta loja para saber a que categorias pertence
+                        rs2 = statement2.executeQuery("SELECT * FROM voto WHERE `loja_idloja`='" + idLoja + "';");
+
+                        //Map<categoria,n_votos>
+                        Map<String,Integer> votos = new HashMap<>();
+
+                        //Popular o mapa para organizar os votos e as respetivas categorias
+                        while(rs2.next()){
+
+                            String categoria = rs.getString("categoria_nomeCategoria");
+                            boolean voto = rs.getBoolean("voto");
+
+                            if(votos.containsKey(categoria)){
+
+                                var v = votos.get(categoria);
+
+                                if(voto) {
+                                    v++;
+                                }
+                                else{
+                                    v--;
+                                }
+
+                            }
+                            else{
+                                int v = voto ? 1 : -1;
+                                votos.put(categoria,v);
+                            }
+
+                        }
+
+                        //Iterar o mapa populado e enviar as categorias válidas da Loja
+                        for(var e : votos.entrySet()){
+
+                            if(e.getValue()>0){
+
+                                //Informar ao cliente que vai ser enviada uma categoria da Loja
+                                out.writeBoolean(true);
+                                out.writeUTF(e.getKey());
+
+                            }
+
+                        }
+
+                        //Esta loja já não tem mais categorias
+                        out.writeBoolean(false);
+
                     }
 
                     //Sinalizar que já não existem mais lojas para receber
@@ -337,7 +379,6 @@ public class ServerWorker implements Runnable{
 
                 }
 
-                //Isto só acontece quando carregas numa preview de um café, por isso é feito apenas um de cada vez e o id da Loja já é conhecido
                 case "getLoja" -> {
 
                     String username = in.readUTF();
@@ -379,7 +420,7 @@ public class ServerWorker implements Runnable{
                     //Sinalizar que já não existem horarios para receber
                     out.writeBoolean(false);
 
-                    //Receber as informações dos votos
+                    //Receber as informações dos votos todos da loja
                     rs = statement.executeQuery("SELECT * FROM voto WHERE `loja_idloja`='" + idLoja + "';");
 
                     //Map<categoria,n_votos>
@@ -410,13 +451,35 @@ public class ServerWorker implements Runnable{
 
                     }
 
+                    //Como é que o user votou em cada categoria (pode não conter todas as possíveis categorias)
+                    Map<String,Integer> votosUser = new HashMap<>();
+
+                    //Receber as informações dos votos que o user fez
+                    rs = statement.executeQuery("SELECT * FROM voto WHERE `loja_idloja`='" + idLoja + "' AND `utilizador_username`='" + username + "';");
+
+                    //Neste ciclo assume-se que a base de dados está populada corretamente e cada user tem apenas um voto em cada categoria numa determinada Loja
+                    while(rs.next()){
+
+                        String categoria = rs.getString("categoria_nomeCategoria");
+                        boolean voto = rs.getBoolean("voto");
+                        int v = voto ? 1 : -1;
+                        votosUser.put(categoria,v);
+
+                    }
+
                     //O mapa é agora iterado para enviar a informação ao cliente
                     for(var set : votos.entrySet()){
 
+                        String key = set.getKey();
+
+                        var v = votosUser.get(key);
+                        int votoUser = v==null ? 0 : v;
+
                         //Sinalizar que será enviado um voto
                         out.writeBoolean(true);
-                        out.writeUTF(set.getKey());
+                        out.writeUTF(key);
                         out.writeInt(set.getValue());
+                        out.writeInt(votoUser);
 
                     }
 
@@ -462,6 +525,15 @@ public class ServerWorker implements Runnable{
 
                 }
 
+                case "removeComent" -> {
+
+                    String usernameInput = in.readUTF();
+                    String idLojaInput = in.readUTF();
+
+                    //Aqui considera-se que cada utilizador apenas pode fazer um comentário por loja
+                    rs = statement.executeQuery("DELETE FROM comentario WHERE `username`='" + usernameInput + "' AND `idLoja`='" + idLojaInput + "';");
+
+                }
 
             }
 
@@ -476,12 +548,6 @@ public class ServerWorker implements Runnable{
             e.printStackTrace();
         }
 
-        
     }
-
-    
-
-
-
     
 }
