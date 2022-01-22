@@ -4,10 +4,7 @@ import java.io.*;
 import java.net.Socket;
 import java.sql.*;
 import java.time.LocalTime;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 
 public class ServerWorker implements Runnable{
@@ -327,6 +324,53 @@ public class ServerWorker implements Runnable{
                         //Se existe next, quer dizer que o request não veio vazio e esta loja é um favorito deste user
                         boolean favorito = rs2.next();
                         out.writeBoolean(favorito);
+
+                        //Obter os votos desta loja para saber a que categorias pertence
+                        rs2 = statement2.executeQuery("SELECT * FROM voto WHERE `loja_idloja`='" + idLoja + "';");
+
+                        //Map<categoria,n_votos>
+                        Map<String,Integer> votos = new HashMap<>();
+
+                        //Popular o mapa para organizar os votos e as respetivas categorias
+                        while(rs2.next()){
+
+                            String categoria = rs.getString("categoria_nomeCategoria");
+                            boolean voto = rs.getBoolean("voto");
+
+                            if(votos.containsKey(categoria)){
+
+                                var v = votos.get(categoria);
+
+                                if(voto) {
+                                    v++;
+                                }
+                                else{
+                                    v--;
+                                }
+
+                            }
+                            else{
+                                int v = voto ? 1 : -1;
+                                votos.put(categoria,v);
+                            }
+
+                        }
+
+                        //Iterar o mapa populado e enviar as categorias válidas da Loja
+                        for(var e : votos.entrySet()){
+
+                            if(e.getValue()>0){
+
+                                //Informar ao cliente que vai ser enviada uma categoria da Loja
+                                out.writeBoolean(true);
+                                out.writeUTF(e.getKey());
+
+                            }
+
+                        }
+
+                        //Esta loja já não tem mais categorias
+                        out.writeBoolean(false);
 
                     }
 
