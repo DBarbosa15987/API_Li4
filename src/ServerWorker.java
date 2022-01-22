@@ -146,6 +146,7 @@ public class ServerWorker implements Runnable{
                     boolean passCerta=false;
 
                     rs = statement.executeQuery("SELECT `password` FROM utilizador WHERE `username`='" + username + "';");
+                    rs.next();
                     if(rs.getString(0).equals(oldPasswordInput)){
                         passCerta=true;
                     }
@@ -183,6 +184,7 @@ public class ServerWorker implements Runnable{
                         rs = statement.executeQuery("SELECT * FROM loja INNER JOIN horario ON loja.idloja = horario.idLoja WHERE `diaSemana`=" + hoje + " AND loja.idloja='" + idLoja + "';");
 
                         //Sinalizar que uma LojaPreview será enviada
+                        rs.next();
                         out.writeBoolean(true);
                         out.writeUTF(rs.getString("idLoja"));
                         out.writeUTF(rs.getString("nome"));
@@ -332,8 +334,8 @@ public class ServerWorker implements Runnable{
                         //Popular o mapa para organizar os votos e as respetivas categorias
                         while(rs2.next()){
 
-                            String categoria = rs.getString("categoria_nomeCategoria");
-                            boolean voto = rs.getBoolean("voto");
+                            String categoria = rs2.getString("categoria_nomeCategoria");
+                            boolean voto = rs2.getBoolean("voto");
 
                             if(votos.containsKey(categoria)){
 
@@ -388,6 +390,7 @@ public class ServerWorker implements Runnable{
 
 
                     //Informação da loja
+                    rs.next();
                     out.writeUTF(rs.getString("nome"));
                     out.writeUTF(rs.getString("website"));
                     out.writeUTF(rs.getString("email"));
