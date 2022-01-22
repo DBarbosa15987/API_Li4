@@ -378,7 +378,7 @@ public class ServerWorker implements Runnable{
                     //Sinalizar que já não existem horarios para receber
                     out.writeBoolean(false);
 
-                    //Receber as informações dos votos
+                    //Receber as informações dos votos todos da loja
                     rs = statement.executeQuery("SELECT * FROM voto WHERE `loja_idloja`='" + idLoja + "';");
 
                     //Map<categoria,n_votos>
@@ -409,13 +409,35 @@ public class ServerWorker implements Runnable{
 
                     }
 
+                    //Como é que o user votou em cada categoria (pode não conter todas as possíveis categorias)
+                    Map<String,Integer> votosUser = new HashMap<>();
+
+                    //Receber as informações dos votos que o user fez
+                    rs = statement.executeQuery("SELECT * FROM voto WHERE `loja_idloja`='" + idLoja + "' AND `utilizador_username`='" + username + "';");
+
+                    //Neste ciclo assume-se que a base de dados está populada corretamente e cada user tem apenas um voto em cada categoria numa determinada Loja
+                    while(rs.next()){
+
+                        String categoria = rs.getString("categoria_nomeCategoria");
+                        boolean voto = rs.getBoolean("voto");
+                        int v = voto ? 1 : -1;
+                        votosUser.put(categoria,v);
+
+                    }
+
                     //O mapa é agora iterado para enviar a informação ao cliente
                     for(var set : votos.entrySet()){
 
+                        String key = set.getKey();
+
+                        var v = votosUser.get(key);
+                        int votoUser = v==null ? 0 : v;
+
                         //Sinalizar que será enviado um voto
                         out.writeBoolean(true);
-                        out.writeUTF(set.getKey());
+                        out.writeUTF(key);
                         out.writeInt(set.getValue());
+                        out.writeInt(votoUser);
 
                     }
 
