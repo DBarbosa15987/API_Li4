@@ -84,11 +84,12 @@ public class ServerWorker implements Runnable{
                     //Se está autenticado, envias todas as infos do user
                     if(autenticado){
 
-                        rs = statement.executeQuery("SELECT `username` FROM utilizador WHERE `username`='" + usernameInput + "';");
+                        rs = statement.executeQuery("SELECT * FROM utilizador WHERE `username`='" + usernameInput + "';");
 
-                        out.writeUTF(rs.getString("email"));
+                        rs.next();
                         out.writeUTF(rs.getString("nomeCompleto"));
                         out.writeUTF(rs.getString("morada"));
+                        out.writeUTF(rs.getString("email"));
                         out.writeUTF(rs.getString("pfpURL"));
                     }
 
