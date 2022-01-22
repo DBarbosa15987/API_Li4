@@ -63,7 +63,6 @@ public class ServerWorker implements Runnable{
 
             switch (query) {
 
-                //quando um user é auteticado apenas é enviado uma confirmação e as suas informações
                 case "autenticaUser" -> {
 
                     //Receber username e pass que o user introduz
@@ -288,7 +287,6 @@ public class ServerWorker implements Runnable{
                     }
                 }
 
-                //(id, nome, local x y , horario a f)
                 case "getLojasPreview" -> {
 
                     //o cliente calcula o dia
@@ -380,7 +378,6 @@ public class ServerWorker implements Runnable{
 
                 }
 
-                //Isto só acontece quando carregas numa preview de um café, por isso é feito apenas um de cada vez e o id da Loja já é conhecido
                 case "getLoja" -> {
 
                     String username = in.readUTF();
@@ -527,6 +524,15 @@ public class ServerWorker implements Runnable{
 
                 }
 
+                case "removeComent" -> {
+
+                    String usernameInput = in.readUTF();
+                    String idLojaInput = in.readUTF();
+
+                    //Aqui considera-se que cada utilizador apenas pode fazer um comentário por loja
+                    rs = statement.executeQuery("DELETE FROM comentario WHERE `username`='" + usernameInput + "' AND `idLoja`='" + idLojaInput + "';");
+
+                }
 
             }
 
@@ -541,12 +547,6 @@ public class ServerWorker implements Runnable{
             e.printStackTrace();
         }
 
-        
     }
-
-    
-
-
-
     
 }
