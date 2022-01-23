@@ -552,7 +552,7 @@ public class ServerWorker implements Runnable{
                     String username = in.readUTF();
                     int size = in.readInt();
                     byte[] arr = new byte[size];
-                    in.read(arr);
+                    in.read(arr,0,size);
                     String extension = in.readUTF();
                     String linkDir = "/var/www/html/user_" + username + "." + extension;
                     File file = new File(linkDir);
@@ -561,7 +561,8 @@ public class ServerWorker implements Runnable{
                     String link = "http://193.200.241.76:9080/user_" + username + "." + extension;
                     out.writeUTF(link);
 
-                    rs = statement.executeQuery("UPDATE utilizador SET `pfpUrl`='" + link + "' WHERE `username`='" + username + "';");
+                    var queryStat = c.prepareStatement("UPDATE utilizador SET `pfpUrl`='" + link + "' WHERE `username`='" + username + "';");
+                    queryStat.executeUpdate();
 
                     os.flush();
                     out.flush();
