@@ -580,9 +580,13 @@ public class ServerWorker implements Runnable{
                     rs = statement.executeQuery("SELECT `pfpUrl` FROM utilizador WHERE `username`='" + usernameInput + "';");
 
                     rs.next();
-                    out.writeUTF(rs.getString("pfpUrl"));
-                    out.flush();
-
+                    String url = rs.getString("pfpUrl");
+                    boolean temPfp = url!=null;
+                    out.writeBoolean(temPfp);
+                    if(temPfp) {
+                        out.writeUTF(url);
+                        out.flush();
+                    }
                 }
 
             }
