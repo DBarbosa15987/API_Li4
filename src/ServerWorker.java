@@ -2,6 +2,7 @@ import netscape.javascript.JSObject;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
 import java.sql.*;
 import java.time.LocalTime;
 import java.util.*;
@@ -13,7 +14,7 @@ public class ServerWorker implements Runnable{
     private Socket s;
     private Connection c;
     
-    public ServerWorker(Socket s) throws InstantiationException, IllegalAccessException, ClassNotFoundException{
+    public ServerWorker(Socket s) throws ClassNotFoundException{
         this.s=s;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -86,7 +87,14 @@ public class ServerWorker implements Runnable{
                         out.writeUTF(rs.getString("nomeCompleto"));
                         out.writeUTF(rs.getString("morada"));
                         out.writeUTF(rs.getString("email"));
-                        out.writeUTF(rs.getString("pfpURL"));
+                        String profilePic = rs.getString("pfpURL");
+                        boolean pic = profilePic!=null;
+
+                        //informar se o user tem foto de perfil ou não
+                        out.writeBoolean(pic);
+                        if(pic) {
+                            out.writeUTF(profilePic);
+                        }
                     }
 
                 }
@@ -535,6 +543,27 @@ public class ServerWorker implements Runnable{
 
                     //Aqui considera-se que cada utilizador apenas pode fazer um comentário por loja
                     rs = statement.executeQuery("DELETE FROM comentario WHERE `username`='" + usernameInput + "' AND `idLoja`='" + idLojaInput + "';");
+
+                }
+
+                case "alterarPfp" -> {
+
+                    String username = in.readUTF();
+                    int size = in.readInt();
+                    byte[] arr = new byte[size];
+                    in.read(arr);
+                    String extension = in.readUTF();
+                    String linkDir = "/var/www/html/user_" + username + "." + extension;
+                    File file = new File(linkDir);
+                    OutputStream os = new FileOutputStream(file);
+                    os.write(arr);
+                    String link = "http://193.200.241.76:9080/user_" + username + "." + extension;
+                    out.writeUTF(link);
+
+                    rs = statement.executeQuery("UPDATE utilizador SET `pfpUrl`='" + link + "' WHERE `username`='" + username + "';");
+
+                    os.flush();
+                    out.flush();
 
                 }
 
