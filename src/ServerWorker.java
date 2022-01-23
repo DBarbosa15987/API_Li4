@@ -164,7 +164,7 @@ public class ServerWorker implements Runnable{
 
                     //Alterar a pass, update da db
                     if(!passIgual&&passCerta) {
-                        var queryStat = c.prepareStatement(("UPDATE utilizador SET `password`='" + newpasswordInput + "' WHERE `username`='" + username + "';");
+                        var queryStat = c.prepareStatement("UPDATE utilizador SET `password`='" + newpasswordInput + "' WHERE `username`='" + username + "';");
                         queryStat.executeUpdate();
                     }
 
