@@ -95,6 +95,7 @@ public class ServerWorker implements Runnable{
                         if(pic) {
                             out.writeUTF(profilePic);
                         }
+                        out.flush();
                     }
 
                 }
