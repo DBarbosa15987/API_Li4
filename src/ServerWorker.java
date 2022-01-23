@@ -18,7 +18,7 @@ public class ServerWorker implements Runnable{
         this.s=s;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            this.c = DriverManager.getConnection("jdbc:mysql://192.168.0.107:3306/mydb", "afonso", "bomdia123");
+            this.c = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "trabalholi");
         } catch (SQLException ex) {
             // handle any errors
             System.out.println("SQLException: " + ex.getMessage());
