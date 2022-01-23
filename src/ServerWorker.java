@@ -14,7 +14,7 @@ public class ServerWorker implements Runnable{
         this.s=s;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            this.c = DriverManager.getConnection("jdbc:mysql://192.168.0.107:3306/mydb", "afonso", "bomdia123");
+            this.c = DriverManager.getConnection("jdbc:mysql://193.200.241.76:3306/mydb", "root", "trabalholi");
         } catch (SQLException ex) {
             // handle any errors
             System.out.println("SQLException: " + ex.getMessage());
@@ -91,6 +91,7 @@ public class ServerWorker implements Runnable{
                         if(pic) {
                             out.writeUTF(profilePic);
                         }
+                        out.flush();
                     }
 
                 }
@@ -118,7 +119,8 @@ public class ServerWorker implements Runnable{
 
                     //Credenciais confirmadas, inserir User na db
                     if(userNameDisponivel&&emailDisponivel) {
-                        rs = statement.executeQuery("INSERT INTO utilizador VALUES ('" + usernameInput +"','" + emailInput + "','" + passwordInput + "','" + nomeCompletoInput + "','" + moradaInput + "');");
+                        var queryStat = c.prepareStatement("INSERT INTO utilizador VALUES ('" + usernameInput +"','" + emailInput + "','" + passwordInput + "','" + nomeCompletoInput + "','" + moradaInput + "');");
+                        queryStat.executeUpdate();
                     }
 
                     out.flush();
@@ -158,7 +160,8 @@ public class ServerWorker implements Runnable{
 
                     //Alterar a pass, update da db
                     if(!passIgual&&passCerta) {
-                        rs = statement.executeQuery("UPDATE utilizador SET `password`='" + newpasswordInput + "' WHERE `username`='" + username + "';");
+                        var queryStat = c.prepareStatement("UPDATE utilizador SET `password`='" + newpasswordInput + "' WHERE `username`='" + username + "';");
+                        queryStat.executeUpdate();
                     }
 
                     //Dizer o que correu bem e o que não, se os dois são verdadeiros sabemos que a password foi atualizada
@@ -252,15 +255,15 @@ public class ServerWorker implements Runnable{
 
                         //upvote
                         case 1 ->
-                            rs = statement.executeQuery("INSERT INTO voto VALUES ('" + usernameInput + "','" + categoriaInput + "','" + idLojaInput + "','" + 1 + "');");
+                                c.prepareStatement("INSERT INTO voto VALUES ('" + usernameInput + "','" + categoriaInput + "','" + idLojaInput + "','" + 1 + "');").executeUpdate();
 
                         //remove
                         case 0 ->
-                            rs = statement.executeQuery("DELETE FROM voto WHERE `utilizador_username`='" + usernameInput + "' AND `loja_idloja`='" + idLojaInput + "';");
+                                c.prepareStatement("DELETE FROM voto WHERE `utilizador_username`='" + usernameInput + "' AND `loja_idloja`='" + idLojaInput + "';").executeUpdate();
 
                         //downvote
                         case -1 ->
-                            rs = statement.executeQuery("INSERT INTO voto VALUES ('" + usernameInput + "','" + categoriaInput + "','" + idLojaInput + "','" + 0 + "');");
+                                c.prepareStatement("INSERT INTO voto VALUES ('" + usernameInput + "','" + categoriaInput + "','" + idLojaInput + "','" + 0 + "');").executeUpdate();
 
                     }
 
@@ -274,8 +277,8 @@ public class ServerWorker implements Runnable{
                     long data = in.readLong();
                     Timestamp timestamp = new Timestamp(data);
 
-                    rs = statement.executeQuery("INSERT INTO comentario VALUES ('" + usernameInput + "','" + idLojaInput + "','" + comentarioInput + "','" + timestamp + "');");
-
+                    var queryStat = c.prepareStatement("INSERT INTO comentario VALUES ('" + usernameInput + "','" + idLojaInput + "','" + comentarioInput + "','" + timestamp + "');");
+                    queryStat.executeUpdate();
                 }
 
                 case "toggleFavorito" -> {
@@ -286,11 +289,13 @@ public class ServerWorker implements Runnable{
 
                     if(addOrRemove) {
                         //add
-                        rs = statement.executeQuery("INSERT INTO favorito VALUES ('" + usernameInput + "','" + idLojaInput + "');");
+                        var queryStat = c.prepareStatement("INSERT INTO favorito VALUES ('" + usernameInput + "','" + idLojaInput + "');");
+                        queryStat.executeUpdate();
                     }
                     else{
                         //remove
-                        rs = statement.executeQuery("DELETE FROM favorito WHERE `username`='" + usernameInput + "' AND `idLoja`='" + idLojaInput + "';");
+                        var queryStat = c.prepareStatement("DELETE FROM favorito WHERE `username`='" + usernameInput + "' AND `idLoja`='" + idLojaInput + "';");
+                        queryStat.executeUpdate();
                     }
                 }
 
@@ -408,6 +413,7 @@ public class ServerWorker implements Runnable{
 
                     //Se existe next, quer dizer que o request não veio vazio e esta loja é um favorito deste user
                     boolean favorito = rs.next();
+                    System.out.println(favorito);
                     out.writeBoolean(favorito);
 
                     //Receber as informações dos horários
@@ -538,8 +544,8 @@ public class ServerWorker implements Runnable{
                     String idLojaInput = in.readUTF();
 
                     //Aqui considera-se que cada utilizador apenas pode fazer um comentário por loja
-                    rs = statement.executeQuery("DELETE FROM comentario WHERE `username`='" + usernameInput + "' AND `idLoja`='" + idLojaInput + "';");
-
+                    var queryStat = c.prepareStatement("DELETE FROM comentario WHERE `username`='" + usernameInput + "' AND `idLoja`='" + idLojaInput + "';");
+                    queryStat.executeUpdate();
                 }
 
                 case "alterarPfp" -> {
@@ -547,18 +553,22 @@ public class ServerWorker implements Runnable{
                     String username = in.readUTF();
                     int size = in.readInt();
                     byte[] arr = new byte[size];
-                    in.read(arr);
                     String extension = in.readUTF();
                     String linkDir = "/var/www/html/user_" + username + "." + extension;
+                    in.read(arr,0,arr.length);
                     File file = new File(linkDir);
                     OutputStream os = new FileOutputStream(file);
                     os.write(arr);
+
+//                    FileOutputStream fos = new FileOutputStream(linkDir);
+//                    BufferedOutputStream bos = new BufferedOutputStream(fos);
+//                    int bytesRead = this.s.getInputStream().read(arr,0,arr.length);
+
                     String link = "http://193.200.241.76:9080/user_" + username + "." + extension;
                     out.writeUTF(link);
-
-                    rs = statement.executeQuery("UPDATE utilizador SET `pfpUrl`='" + link + "' WHERE `username`='" + username + "';");
-
                     os.flush();
+                    var queryStat = c.prepareStatement("UPDATE utilizador SET `pfpUrl`='" + link + "' WHERE `username`='" + username + "';");
+                    queryStat.executeUpdate();
                     out.flush();
 
                 }
