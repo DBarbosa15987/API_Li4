@@ -417,6 +417,7 @@ public class ServerWorker implements Runnable{
 
                     //Se existe next, quer dizer que o request não veio vazio e esta loja é um favorito deste user
                     boolean favorito = rs.next();
+                    System.out.println(favorito);
                     out.writeBoolean(favorito);
 
                     //Receber as informações dos horários
