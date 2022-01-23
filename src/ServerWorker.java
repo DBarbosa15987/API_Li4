@@ -215,7 +215,7 @@ public class ServerWorker implements Runnable{
                     String username = in.readUTF();
 
                     //Obter a informação dos comentários
-                    rs = statement.executeQuery("SELECT * FROM comentario WHERE `username`='" + username + "';");
+                    rs = statement.executeQuery("SELECT * FROM comentario INNER JOIN loja ON comentario.idLoja = loja.idloja WHERE `username`='" + username + "';");
 
                     //Enviar informação os comentários
                     while(rs.next()){
@@ -223,6 +223,7 @@ public class ServerWorker implements Runnable{
                         //Sinalizar que um comentário será enviado
                         out.writeBoolean(true);
                         out.writeUTF(rs.getString("idLoja"));
+                        out.writeUTF(rs.getString("nome"));
                         out.writeUTF(rs.getString("comentarioText"));
                         var timestamp = rs.getTimestamp("data");
                         out.writeLong(timestamp.getTime());
