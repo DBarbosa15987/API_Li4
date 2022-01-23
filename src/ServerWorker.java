@@ -573,6 +573,18 @@ public class ServerWorker implements Runnable{
 
                 }
 
+                case "getPfp" -> {
+
+                    String usernameInput = in.readUTF();
+
+                    rs = statement.executeQuery("SELECT `pfpUrl` FROM utilizador WHERE `username`='" + usernameInput + "';");
+
+                    rs.next();
+                    out.writeUTF(rs.getString("pfpUrl"));
+                    out.flush();
+
+                }
+
             }
 
             System.out.println("Conexão terminada na porta " + s.getPort());
