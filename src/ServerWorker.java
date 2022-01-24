@@ -119,7 +119,7 @@ public class ServerWorker implements Runnable{
 
                     //Credenciais confirmadas, inserir User na db
                     if(userNameDisponivel&&emailDisponivel) {
-                        var queryStat = c.prepareStatement("INSERT INTO utilizador VALUES ('" + usernameInput +"','" + emailInput + "','" + passwordInput + "','" + nomeCompletoInput + "','" + moradaInput + "');");
+                        var queryStat = c.prepareStatement("INSERT INTO utilizador (`username`,`email`,`password`,`nomeCompleto`,`morada`) VALUES  ('" + usernameInput +"','" + emailInput + "','" + passwordInput + "','" + nomeCompletoInput + "','" + moradaInput + "');");
                         queryStat.executeUpdate();
                     }
 
