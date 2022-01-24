@@ -553,8 +553,7 @@ public class ServerWorker implements Runnable{
                     byte[] arr = new byte[size];
                     String extension = in.readUTF();
                     String linkDir = "/var/www/html/user_" + username + "." + extension;
-                    byte[] b = new byte[size];
-                    in.readFully(b);
+                    in.readFully(arr);
                     File file = new File(linkDir);
                     OutputStream os = new FileOutputStream(file);
                     os.write(arr);
