@@ -254,16 +254,13 @@ public class ServerWorker implements Runnable{
                     String usernameInput = in.readUTF();
                     String idLojaInput = in.readUTF();
                     String categoriaInput = in.readUTF();
-
+                    c.prepareStatement("DELETE FROM voto WHERE `utilizador_username`='" + usernameInput + "' AND `loja_idloja`='" + idLojaInput + "';").executeUpdate();
                     switch (alter){
 
                         //upvote
                         case 1 ->
                                 c.prepareStatement("INSERT INTO voto VALUES ('" + usernameInput + "','" + categoriaInput + "','" + idLojaInput + "','" + 1 + "');").executeUpdate();
 
-                        //remove
-                        case 0 ->
-                                c.prepareStatement("DELETE FROM voto WHERE `utilizador_username`='" + usernameInput + "' AND `loja_idloja`='" + idLojaInput + "';").executeUpdate();
 
                         //downvote
                         case -1 ->
