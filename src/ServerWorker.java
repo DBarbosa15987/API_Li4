@@ -251,7 +251,7 @@ public class ServerWorker implements Runnable{
                     String usernameInput = in.readUTF();
                     String idLojaInput = in.readUTF();
                     String categoriaInput = in.readUTF();
-                    c.prepareStatement("DELETE FROM voto WHERE `utilizador_username`='" + usernameInput + "' AND `loja_idloja`='" + idLojaInput + "';").executeUpdate();
+                    c.prepareStatement("DELETE FROM voto WHERE `utilizador_username`='" + usernameInput + "' AND `categoria_nomeCategoria`='"+ categoriaInput + "' AND `loja_idloja`='" + idLojaInput + "';").executeUpdate();
                     switch (alter){
 
                         //upvote
