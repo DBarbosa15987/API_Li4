@@ -554,22 +554,18 @@ public class ServerWorker implements Runnable{
                     String extension = in.readUTF();
                     String linkDir = "/var/www/html/user_" + username + "." + extension;
                     byte[] b = new byte[size];
-                    int i = 0;
-                    for(i = 0; i < size; i++) {
-                        b[i] = in.readByte();
-                        i++;
-                    }
+                    in.readFully(b);
                     File file = new File(linkDir);
                     OutputStream os = new FileOutputStream(file);
                     os.write(arr);
-
+                    os.flush();
 //                    FileOutputStream fos = new FileOutputStream(linkDir);
 //                    BufferedOutputStream bos = new BufferedOutputStream(fos);
 //                    int bytesRead = this.s.getInputStream().read(arr,0,arr.length);
 
                     String link = "http://193.200.241.76:9080/user_" + username + "." + extension;
                     out.writeUTF(link);
-                    os.flush();
+
                     var queryStat = c.prepareStatement("UPDATE utilizador SET `pfpUrl`='" + link + "' WHERE `username`='" + username + "';");
                     queryStat.executeUpdate();
                     out.flush();
