@@ -559,6 +559,7 @@ public class ServerWorker implements Runnable{
                     OutputStream os = new FileOutputStream(file);
                     os.write(arr);
                     os.flush();
+                    os.close();
 //                    FileOutputStream fos = new FileOutputStream(linkDir);
 //                    BufferedOutputStream bos = new BufferedOutputStream(fos);
 //                    int bytesRead = this.s.getInputStream().read(arr,0,arr.length);
