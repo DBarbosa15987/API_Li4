@@ -1,10 +1,6 @@
-import netscape.javascript.JSObject;
-
 import java.io.*;
 import java.net.Socket;
-import java.nio.file.Files;
 import java.sql.*;
-import java.time.LocalTime;
 import java.util.*;
 
 
@@ -219,7 +215,7 @@ public class ServerWorker implements Runnable{
                     String username = in.readUTF();
 
                     //Obter a informação dos comentários
-                    rs = statement.executeQuery("SELECT * FROM comentario WHERE `username`='" + username + "';");
+                    rs = statement.executeQuery("SELECT * FROM comentario INNER JOIN loja ON comentario.idLoja = loja.idloja WHERE `username`='" + username + "';");
 
                     //Enviar informação os comentários
                     while(rs.next()){
@@ -227,6 +223,7 @@ public class ServerWorker implements Runnable{
                         //Sinalizar que um comentário será enviado
                         out.writeBoolean(true);
                         out.writeUTF(rs.getString("idLoja"));
+                        out.writeUTF(rs.getString("nome"));
                         out.writeUTF(rs.getString("comentarioText"));
                         var timestamp = rs.getTimestamp("data");
                         out.writeLong(timestamp.getTime());
@@ -572,6 +569,22 @@ public class ServerWorker implements Runnable{
                     queryStat.executeUpdate();
                     out.flush();
 
+                }
+
+                case "getPfp" -> {
+
+                    String usernameInput = in.readUTF();
+
+                    rs = statement.executeQuery("SELECT `pfpUrl` FROM utilizador WHERE `username`='" + usernameInput + "';");
+
+                    rs.next();
+                    String url = rs.getString("pfpUrl");
+                    boolean temPfp = url!=null;
+                    out.writeBoolean(temPfp);
+                    if(temPfp) {
+                        out.writeUTF(url);
+                        out.flush();
+                    }
                 }
 
             }
